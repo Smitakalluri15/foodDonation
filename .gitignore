@@ -1,0 +1,11 @@
+.# Mac
+.DS_Store
+
+# React
+node_modules
+build
+dist
+
+# Spring Boot
+target
+*.log
