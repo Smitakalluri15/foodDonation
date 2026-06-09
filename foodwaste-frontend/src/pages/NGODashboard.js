@@ -3,14 +3,14 @@ import { Link } from 'react-router-dom';
 import donationService from '../services/donationService';
 import { useAuth } from '../context/AuthContext';
 import { formatDateTime, statusBadgeClass, getErrorMessage } from '../utils/helpers';
-import { toast } from 'react-toastify';
+import StarRating from '../components/StarRating';
 
 const NGODashboard = () => {
   const { user } = useAuth();
   const [tasks, setTasks]       = useState([]);
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState('');
-  const [tab, setTab]           = useState('tasks'); // 'tasks' | 'browse'
+  const [ratingTarget, setRatingTarget] = useState(null);
 
   const fetchTasks = async () => {
     try {
@@ -107,10 +107,26 @@ const NGODashboard = () => {
                     <td>{t.quantity} {t.quantityUnit}</td>
                     <td>{formatDateTime(t.pickupTime)}</td>
                     <td>
-                      {t.volunteerName
-                        ? <span style={{ color: '#16a34a', fontWeight: 500 }}>{t.volunteerName}</span>
-                        : <span style={{ color: '#9ca3af', fontSize: '13px' }}>Not assigned yet</span>
-                      }
+                      {t.volunteerName ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <span style={{ color: '#16a34a', fontWeight: 500 }}>{t.volunteerName}</span>
+                          {t.status === 'COMPLETED' && (
+                            <button
+                              className="btn btn-secondary btn-sm"
+                              style={{ padding: '2px 6px', fontSize: '11px', alignSelf: 'flex-start' }}
+                              onClick={() => setRatingTarget({
+                                donationId: t.donationId,
+                                rateeId: t.volunteerId,
+                                rateeName: t.volunteerName,
+                              })}
+                            >
+                              ⭐️ Rate Volunteer
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <span style={{ color: '#9ca3af', fontSize: '13px' }}>Not assigned yet</span>
+                      )}
                     </td>
                     <td>
                       <span className={`badge ${statusBadgeClass(t.status)}`}>{t.status}</span>
@@ -119,6 +135,31 @@ const NGODashboard = () => {
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Star Rating Modal */}
+      {ratingTarget && (
+        <div style={styles.modalOverlay} onClick={() => setRatingTarget(null)}>
+          <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <div style={styles.modalHeader}>
+              <h3 style={styles.modalTitle}>Rate Volunteer</h3>
+              <button
+                style={styles.modalCloseBtn}
+                onClick={() => setRatingTarget(null)}
+              >
+                &times;
+              </button>
+            </div>
+            <div style={{ padding: '1.25rem' }}>
+              <StarRating
+                donationId={ratingTarget.donationId}
+                rateeId={ratingTarget.rateeId}
+                rateeName={ratingTarget.rateeName}
+                onSuccess={fetchTasks}
+              />
+            </div>
           </div>
         </div>
       )}
@@ -132,6 +173,26 @@ const styles = {
     marginBottom: '1.75rem', flexWrap: 'wrap', gap: '1rem',
   },
   heading: { fontSize: '26px', fontWeight: 700, marginBottom: '4px' },
+  modalOverlay: {
+    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+    background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
+    display: 'flex', justifyContent: 'center', alignItems: 'center',
+    zIndex: 2000,
+  },
+  modalContent: {
+    background: '#fff', borderRadius: '12px', width: '90%', maxWidth: '400px',
+    boxShadow: '0 10px 25px rgba(0,0,0,0.15)', overflow: 'hidden',
+    animation: 'modal-slide-up 0.2s ease-out',
+  },
+  modalHeader: {
+    padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb',
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+  },
+  modalTitle: { fontSize: '16px', fontWeight: 700, color: '#111827' },
+  modalCloseBtn: {
+    background: 'transparent', border: 'none', fontSize: '24px',
+    color: '#9ca3af', cursor: 'pointer', lineStyle: 'none',
+  },
 };
 
 export default NGODashboard;

@@ -10,8 +10,8 @@ const PickupTasks = () => {
   const [error, setError]       = useState('');
   const [cityFilter, setCityFilter] = useState('');
 
-  const fetchTasks = async () => {
-    setLoading(true);
+  const fetchTasks = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const data = await donationService.getOpenTasks();
       setTasks(data);
@@ -22,7 +22,23 @@ const PickupTasks = () => {
     }
   };
 
-  useEffect(() => { fetchTasks(); }, []);
+  useEffect(() => {
+    fetchTasks();
+  }, []);
+
+  useEffect(() => {
+    const handleWsAlert = (e) => {
+      const data = e.detail;
+      if (data && ['DONATION_CLAIMED', 'TASK_ACCEPTED'].includes(data.type)) {
+        fetchTasks(true); // Silent reload in the background
+      }
+    };
+
+    window.addEventListener('plateful-ws-alert', handleWsAlert);
+    return () => {
+      window.removeEventListener('plateful-ws-alert', handleWsAlert);
+    };
+  }, []);
 
   const handleAccept = async (taskId) => {
     if (!window.confirm('Accept this pickup task?')) return;

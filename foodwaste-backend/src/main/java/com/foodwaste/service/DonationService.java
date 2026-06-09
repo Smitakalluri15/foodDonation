@@ -22,6 +22,10 @@ public class DonationService {
     @Autowired private DonationRepository donationRepository;
     @Autowired private UserRepository userRepository;
     @Autowired private PickupRepository pickupRepository;
+    @Autowired private PointsService pointsService;
+    @Autowired private GeocodeService geocodeService;
+    @Autowired private com.foodwaste.config.NotificationWebSocketHandler webSocketHandler;
+    @Autowired private EmailService emailService;
 
     // ── Donor: add new donation ──────────────────────────────────────────────
     @Transactional
@@ -40,13 +44,43 @@ public class DonationService {
             .status(DonationStatus.AVAILABLE)
             .donor(donor)
             .build();
-        return toResponse(donationRepository.save(donation));
+        Donation saved = donationRepository.save(donation);
+
+        try {
+            String fullAddress = saved.getPickupAddress();
+            if (saved.getCity() != null && !saved.getCity().isBlank()) {
+                fullAddress += ", " + saved.getCity();
+            }
+            double[] coords = geocodeService.geocodeAddress(fullAddress);
+            if (coords != null) {
+                saved.setLatitude(coords[0]);
+                saved.setLongitude(coords[1]);
+                saved = donationRepository.save(saved);
+            }
+        } catch (Exception e) {
+            // safe catch to prevent blocking donation save
+        }
+
+        try {
+            webSocketHandler.broadcast("{\"type\":\"DONATION_CREATED\",\"id\":" + saved.getId() + ",\"name\":\"" + saved.getFoodName().replace("\"", "\\\"") + "\",\"city\":\"" + (saved.getCity() != null ? saved.getCity().replace("\"", "\\\"") : "") + "\"}");
+        } catch (Exception e) {
+            // safe ignore
+        }
+
+        return toResponse(saved);
     }
 
     // ── Donor: view own donations ────────────────────────────────────────────
     public List<DonationResponse> getMyDonations() {
         User donor = getCurrentUser();
         return donationRepository.findByDonorId(donor.getId())
+            .stream().map(this::toResponse).collect(Collectors.toList());
+    }
+
+    // ── NGO: view claimed donations ──────────────────────────────────────────
+    public List<DonationResponse> getClaimedDonations() {
+        User ngo = getCurrentUser();
+        return donationRepository.findByClaimedByNgoId(ngo.getId())
             .stream().map(this::toResponse).collect(Collectors.toList());
     }
 
@@ -124,6 +158,28 @@ public class DonationService {
             .build();
         pickupRepository.save(task);
 
+        // Award points to donor when their donation is claimed
+        User donor = donation.getDonor();
+        pointsService.awardPoints(donor, PointsService.DONATION_CLAIMED, "Donation claimed by NGO", donation.getId());
+
+        // Check if it's the donor's first ever donation
+        long donationCount = donationRepository.countByDonorId(donor.getId());
+        if (donationCount == 1) {
+            pointsService.awardPoints(donor, PointsService.FIRST_DONATION, "First donation bonus", donation.getId());
+        }
+
+        try {
+            webSocketHandler.broadcast("{\"type\":\"DONATION_CLAIMED\",\"id\":" + donation.getId() + ",\"name\":\"" + donation.getFoodName().replace("\"", "\\\"") + "\"}");
+        } catch (Exception e) {
+            // safe ignore
+        }
+
+        try {
+            emailService.sendDonationClaimed(donation);
+        } catch (Exception e) {
+            // safe ignore
+        }
+
         return toResponse(donation);
     }
 
@@ -162,6 +218,8 @@ public class DonationService {
             .claimedByNgoId(d.getClaimedByNgo() != null ? d.getClaimedByNgo().getId() : null)
             .claimedByNgoName(d.getClaimedByNgo() != null ? d.getClaimedByNgo().getName() : null)
             .createdAt(d.getCreatedAt())
+            .lat(d.getLatitude())
+            .lng(d.getLongitude())
             .build();
     }
 }

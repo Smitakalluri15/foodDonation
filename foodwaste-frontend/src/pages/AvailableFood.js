@@ -18,12 +18,17 @@ const AvailableFood = () => {
   const [cityFilter, setCityFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
 
-  const fetchDonations = async () => {
-    setLoading(true);
+  const fetchDonations = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const data = await donationService.getAvailable();
-      setDonations(data);
-      setFiltered(data);
+      const sorted = [...data].sort((a, b) => {
+        const timeA = a.bestBefore ? new Date(a.bestBefore).getTime() : Infinity;
+        const timeB = b.bestBefore ? new Date(b.bestBefore).getTime() : Infinity;
+        return timeA - timeB;
+      });
+      setDonations(sorted);
+      setFiltered(sorted);
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -31,7 +36,23 @@ const AvailableFood = () => {
     }
   };
 
-  useEffect(() => { fetchDonations(); }, []);
+  useEffect(() => {
+    fetchDonations();
+  }, []);
+
+  useEffect(() => {
+    const handleWsAlert = (e) => {
+      const data = e.detail;
+      if (data && ['DONATION_CREATED', 'DONATION_CLAIMED'].includes(data.type)) {
+        fetchDonations(true); // Silent reload in the background
+      }
+    };
+
+    window.addEventListener('plateful-ws-alert', handleWsAlert);
+    return () => {
+      window.removeEventListener('plateful-ws-alert', handleWsAlert);
+    };
+  }, []);
 
   // Client-side filtering
   useEffect(() => {

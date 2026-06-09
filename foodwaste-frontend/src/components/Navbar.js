@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import NotificationBell from './NotificationBell';
 
 const Navbar = () => {
   const { user, logout, isAuthenticated } = useAuth();
   const navigate  = useNavigate();
   const location  = useLocation();
-  const [menuOpen, setMenuOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -40,16 +40,25 @@ const Navbar = () => {
               padding: '6px 14px',
               fontWeight: 700,
               background: isActive('/experience')
-                ? 'linear-gradient(135deg,#ef4444,#f87171)'
+                ? 'linear-gradient(135deg,var(--primary),var(--secondary))'
                 : 'rgba(255,255,255,0.85)',
-              color: isActive('/experience') ? '#fff' : '#1f2937',
+              color: isActive('/experience') ? '#1c1b18' : '#374151',
               border: '1px solid rgba(0,0,0,0.06)',
               boxShadow: isActive('/experience')
-                ? '0 12px 24px rgba(239,68,68,0.18)'
+                ? '0 12px 24px rgba(255,212,0,0.25)'
                 : '0 8px 16px rgba(0,0,0,0.05)',
             }}
           >
             Experience
+          </Link>
+          <Link
+            to="/leaderboard"
+            style={{
+              ...styles.link,
+              ...(isActive('/leaderboard') ? styles.linkActive : {})
+            }}
+          >
+            Leaderboard
           </Link>
           {isAuthenticated() && (
             <>
@@ -65,6 +74,13 @@ const Navbar = () => {
                 style={{ ...styles.link, ...(isActive('/feed') ? styles.linkActive : {}) }}
               >
                 Live Feed
+              </Link>
+
+              <Link
+                to="/map"
+                style={{ ...styles.link, ...(isActive('/map') ? styles.linkActive : {}) }}
+              >
+                Map
               </Link>
 
               {user?.role === 'DONOR' && (
@@ -98,6 +114,7 @@ const Navbar = () => {
         <div style={styles.right}>
           {isAuthenticated() ? (
             <div style={styles.userMenu}>
+              <NotificationBell />
               <span style={styles.userName}>
                 👤 {user?.name?.split(' ')[0]}
               </span>
@@ -133,7 +150,7 @@ const styles = {
   },
   logo: {
     display: 'flex', alignItems: 'center', gap: '8px',
-    fontWeight: 700, fontSize: '18px', color: '#ef4444',
+    fontWeight: 700, fontSize: '18px', color: 'var(--primary-text)',
     textDecoration: 'none', marginRight: '0.5rem',
   },
   logoIcon: { fontSize: '22px' },
@@ -145,7 +162,7 @@ const styles = {
     color: '#374151', textDecoration: 'none',
     transition: 'background 0.15s',
   },
-  linkActive: { background: '#fee2e2', color: '#ef4444' },
+  linkActive: { background: 'var(--primary-light)', color: 'var(--primary-dark-text)' },
   right: { display: 'flex', alignItems: 'center', gap: '0.75rem', marginLeft: 'auto' },
   userMenu: { display: 'flex', alignItems: 'center', gap: '8px' },
   userName: { fontSize: '14px', fontWeight: '500', color: '#374151' },

@@ -21,9 +21,12 @@ public class VolunteerService {
     @Autowired private PickupRepository pickupRepository;
     @Autowired private UserRepository userRepository;
     @Autowired private DonationRepository donationRepository;
+    @Autowired private PointsService pointsService;
+    @Autowired private com.foodwaste.config.NotificationWebSocketHandler webSocketHandler;
 
     // ── Volunteer: view open tasks (no volunteer assigned yet) ───────────────
     public List<PickupTaskResponse> getOpenTasks() {
+        getCurrentUser();
         return pickupRepository
             .findByVolunteerIsNullAndStatus(PickupStatus.PENDING)
             .stream().map(this::toResponse).collect(Collectors.toList());
@@ -52,7 +55,13 @@ public class VolunteerService {
         donation.setStatus(DonationStatus.PICKED_UP);
         donationRepository.save(donation);
 
-        return toResponse(pickupRepository.save(task));
+        PickupTask savedTask = pickupRepository.save(task);
+        try {
+            webSocketHandler.broadcast("{\"type\":\"TASK_ACCEPTED\",\"id\":" + savedTask.getId() + ",\"foodName\":\"" + savedTask.getDonation().getFoodName().replace("\"", "\\\"") + "\",\"volunteerName\":\"" + savedTask.getVolunteer().getName().replace("\"", "\\\"") + "\"}");
+        } catch (Exception e) {
+            // safe ignore
+        }
+        return toResponse(savedTask);
     }
 
     // ── Volunteer: mark task as completed ───────────────────────────────────
@@ -73,7 +82,16 @@ public class VolunteerService {
         donation.setStatus(DonationStatus.COMPLETED);
         donationRepository.save(donation);
 
-        return toResponse(pickupRepository.save(task));
+        // Award points to donor for completed pickup
+        pointsService.awardPoints(donation.getDonor(), PointsService.PICKUP_COMPLETED, "Donation pickup completed", donation.getId());
+
+        PickupTask savedTask = pickupRepository.save(task);
+        try {
+            webSocketHandler.broadcast("{\"type\":\"TASK_COMPLETED\",\"id\":" + savedTask.getId() + ",\"foodName\":\"" + savedTask.getDonation().getFoodName().replace("\"", "\\\"") + "\",\"volunteerName\":\"" + savedTask.getVolunteer().getName().replace("\"", "\\\"") + "\"}");
+        } catch (Exception e) {
+            // safe ignore
+        }
+        return toResponse(savedTask);
     }
 
     // ── Volunteer: view my tasks ─────────────────────────────────────────────
@@ -94,8 +112,12 @@ public class VolunteerService {
     private User getCurrentUser() {
         UserDetailsImpl userDetails = (UserDetailsImpl) SecurityContextHolder
             .getContext().getAuthentication().getPrincipal();
-        return userRepository.findById(userDetails.getId())
+        User user = userRepository.findById(userDetails.getId())
             .orElseThrow(() -> new RuntimeException("Authenticated user not found"));
+        if (user.getRole() == Role.VOLUNTEER && Boolean.FALSE.equals(user.getApproved())) {
+            throw new RuntimeException("Your volunteer account is pending approval by the administrator.");
+        }
+        return user;
     }
 
     public PickupTaskResponse toResponse(PickupTask t) {

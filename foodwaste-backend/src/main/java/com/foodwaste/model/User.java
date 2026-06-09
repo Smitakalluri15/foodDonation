@@ -45,11 +45,21 @@ public class User {
     @Column(name = "is_active")
     private Boolean isActive = true;
 
+    @Column(name = "points", nullable = false)
+    private Integer points = 0;
+
     @Column(name = "org_name")
     private String orgName;
 
     @Column(name = "registration_number")
     private String registrationNumber;
+
+    @Column(name = "aadhaar_number")
+    @Convert(converter = com.foodwaste.security.AadhaarConverter.class)
+    private String aadhaarNumber;
+
+    @Column(name = "approved")
+    private Boolean approved = true;
 
     @OneToMany(mappedBy = "donor", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Donation> donations;
@@ -75,16 +85,21 @@ public class User {
         this.role               = b.role;
         this.orgName            = b.orgName;
         this.registrationNumber = b.registrationNumber;
+        this.aadhaarNumber      = b.aadhaarNumber;
+        this.approved           = b.approved;
         this.isActive           = b.isActive;
+        this.points             = b.points;
     }
 
     // ── Builder ──────────────────────────────────────────────────────────────
     public static Builder builder() { return new Builder(); }
 
     public static class Builder {
-        private String  name, email, password, phone, address, city, orgName, registrationNumber;
+        private String  name, email, password, phone, address, city, orgName, registrationNumber, aadhaarNumber;
         private Role    role;
         private Boolean isActive = true;
+        private Boolean approved = true;
+        private Integer points = 0;
 
         public Builder name(String v)               { this.name = v; return this; }
         public Builder email(String v)              { this.email = v; return this; }
@@ -95,7 +110,10 @@ public class User {
         public Builder role(Role v)                 { this.role = v; return this; }
         public Builder orgName(String v)            { this.orgName = v; return this; }
         public Builder registrationNumber(String v) { this.registrationNumber = v; return this; }
+        public Builder aadhaarNumber(String v)      { this.aadhaarNumber = v; return this; }
+        public Builder approved(Boolean v)          { this.approved = v; return this; }
         public Builder isActive(Boolean v)          { this.isActive = v; return this; }
+        public Builder points(Integer v)            { this.points = v; return this; }
         public User build()                         { return new User(this); }
     }
 
@@ -110,8 +128,11 @@ public class User {
     public Role getRole()                 { return role; }
     public LocalDateTime getCreatedAt()   { return createdAt; }
     public Boolean getIsActive()          { return isActive; }
+    public Integer getPoints()            { return points; }
     public String getOrgName()            { return orgName; }
     public String getRegistrationNumber() { return registrationNumber; }
+    public String getAadhaarNumber()      { return aadhaarNumber; }
+    public Boolean getApproved()          { return approved; }
     public List<Donation> getDonations()  { return donations; }
     public List<PickupTask> getPickupTasks() { return pickupTasks; }
 
@@ -125,7 +146,10 @@ public class User {
     public void setCity(String city)                  { this.city = city; }
     public void setRole(Role role)                    { this.role = role; }
     public void setIsActive(Boolean isActive)         { this.isActive = isActive; }
+    public void setPoints(Integer points)             { this.points = points; }
     public void setOrgName(String orgName)            { this.orgName = orgName; }
     public void setRegistrationNumber(String v)       { this.registrationNumber = v; }
+    public void setAadhaarNumber(String v)            { this.aadhaarNumber = v; }
+    public void setApproved(Boolean v)                { this.approved = v; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

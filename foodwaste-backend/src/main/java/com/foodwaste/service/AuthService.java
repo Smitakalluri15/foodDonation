@@ -50,6 +50,7 @@ public class AuthService {
             .email(userDetails.getUsername())
             .role(user.getRole())
             .city(user.getCity())
+            .approved(user.getApproved())
             .build();
     }
 
@@ -75,6 +76,8 @@ public class AuthService {
             .role(request.getRole())
             .orgName(request.getOrgName())
             .registrationNumber(request.getRegistrationNumber())
+            .aadhaarNumber(request.getAadhaarNumber())
+            .approved(request.getRole() != Role.VOLUNTEER)
             .isActive(true)
             .build();
 

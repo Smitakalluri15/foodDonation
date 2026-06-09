@@ -25,9 +25,7 @@ public class NGOController {
     // ── NGO: My claimed donations ────────────────────────────────────────────
     @GetMapping("/donations/claimed")
     public ResponseEntity<List<DonationResponse>> getClaimedDonations() {
-        // Reuse the available endpoint filtered by NGO's claims
-        // Delegated to DonationService
-        return ResponseEntity.ok(donationService.getMyDonations());
+        return ResponseEntity.ok(donationService.getClaimedDonations());
     }
 
     // ── NGO: My pickup tasks ─────────────────────────────────────────────────

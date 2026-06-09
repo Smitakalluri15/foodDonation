@@ -59,6 +59,9 @@ public class Donation {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    private Double latitude;
+    private Double longitude;
+
     @OneToOne(mappedBy = "donation", cascade = CascadeType.ALL)
     private PickupTask pickupTask;
 
@@ -90,6 +93,8 @@ public class Donation {
         this.status       = b.status;
         this.donor        = b.donor;
         this.claimedByNgo = b.claimedByNgo;
+        this.latitude     = b.latitude;
+        this.longitude    = b.longitude;
     }
 
     // ── Builder ──────────────────────────────────────────────────────────────
@@ -102,6 +107,7 @@ public class Donation {
         private LocalDateTime bestBefore, pickupTime;
         private DonationStatus status;
         private User donor, claimedByNgo;
+        private Double latitude, longitude;
 
         public Builder foodName(String v)          { this.foodName = v; return this; }
         public Builder description(String v)       { this.description = v; return this; }
@@ -115,6 +121,8 @@ public class Donation {
         public Builder status(DonationStatus v)    { this.status = v; return this; }
         public Builder donor(User v)               { this.donor = v; return this; }
         public Builder claimedByNgo(User v)        { this.claimedByNgo = v; return this; }
+        public Builder latitude(Double v)          { this.latitude = v; return this; }
+        public Builder longitude(Double v)         { this.longitude = v; return this; }
         public Donation build()                    { return new Donation(this); }
     }
 
@@ -135,6 +143,8 @@ public class Donation {
     public LocalDateTime getCreatedAt()     { return createdAt; }
     public LocalDateTime getUpdatedAt()     { return updatedAt; }
     public PickupTask getPickupTask()       { return pickupTask; }
+    public Double getLatitude()             { return latitude; }
+    public Double getLongitude()            { return longitude; }
 
     // ── Setters ──────────────────────────────────────────────────────────────
     public void setId(Long id)                      { this.id = id; }
@@ -152,4 +162,6 @@ public class Donation {
     public void setClaimedByNgo(User v)             { this.claimedByNgo = v; }
     public void setCreatedAt(LocalDateTime v)       { this.createdAt = v; }
     public void setUpdatedAt(LocalDateTime v)       { this.updatedAt = v; }
+    public void setLatitude(Double v)               { this.latitude = v; }
+    public void setLongitude(Double v)              { this.longitude = v; }
 }

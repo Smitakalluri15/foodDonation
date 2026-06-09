@@ -28,4 +28,6 @@ public class DonationResponse {
     private Long claimedByNgoId;
     private String claimedByNgoName;
     private LocalDateTime createdAt;
+    private Double lat;
+    private Double lng;
 }

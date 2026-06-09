@@ -76,6 +76,8 @@ public class SecurityConfig {
                 // Public API endpoints
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/public/**").permitAll()
+                .requestMatchers("/api/leaderboard").permitAll()
+                .requestMatchers("/ws/notifications/**", "/ws/notifications").permitAll()
                 // Donor-only routes
                 .requestMatchers("/api/donations/my/**").hasRole("DONOR")
                 .requestMatchers("/api/donations/add").hasRole("DONOR")

@@ -1,13 +1,92 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { formatDate, statusBadgeClass, foodTypeEmoji, truncate } from '../utils/helpers';
+import API from '../services/api';
+
+const getExpiryStatus = (bestBeforeStr) => {
+  if (!bestBeforeStr) return 'ok';
+  const bestBefore = new Date(bestBeforeStr);
+  const now = new Date();
+  const diffMs = bestBefore.getTime() - now.getTime();
+
+  if (diffMs < 0) return 'expired';
+
+  const diffHours = diffMs / (1000 * 60 * 60);
+  if (diffHours <= 6) return 'critical';
+  if (diffHours <= 24) return 'warning';
+  if (diffHours <= 48) return 'soon';
+  return 'ok';
+};
 
 const DonationCard = ({ donation, actions }) => {
   const {
-    foodName, description, quantity, quantityUnit,
+    id, foodName, description, quantity, quantityUnit,
     foodType, pickupAddress, city, pickupTime,
     bestBefore, status, donorName, donorPhone,
     claimedByNgoName, createdAt,
   } = donation;
+
+  const [ratings, setRatings] = useState([]);
+  const [ratingsLoading, setRatingsLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    const fetchRatings = async () => {
+      try {
+        const response = await API.get(`/ratings/donation/${id}`);
+        if (active) {
+          setRatings(response.data || []);
+        }
+      } catch (err) {
+        console.error('Failed to fetch ratings for card', err);
+      } finally {
+        if (active) setRatingsLoading(false);
+      }
+    };
+    if (id) {
+      fetchRatings();
+    } else {
+      setRatingsLoading(false);
+    }
+    return () => {
+      active = false;
+    };
+  }, [id]);
+
+  const ratingCount = ratings.length;
+  const ratingAverage = ratingCount > 0
+    ? (ratings.reduce((sum, r) => sum + r.score, 0) / ratingCount).toFixed(1)
+    : null;
+
+  const renderExpiryBadge = () => {
+    const expStatus = getExpiryStatus(bestBefore);
+    if (expStatus === 'ok') return null;
+
+    let badgeClass = '';
+    let label = '';
+
+    if (expStatus === 'expired') {
+      badgeClass = 'badge-red';
+      label = 'Expired';
+    } else if (expStatus === 'critical') {
+      const now = new Date();
+      const diffMs = new Date(bestBefore).getTime() - now.getTime();
+      const remainingHours = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60)));
+      badgeClass = 'badge-red';
+      label = `Expires in ${remainingHours} hour${remainingHours !== 1 ? 's' : ''}`;
+    } else if (expStatus === 'warning') {
+      badgeClass = 'badge-orange';
+      label = 'Expires tomorrow';
+    } else if (expStatus === 'soon') {
+      badgeClass = 'badge-amber';
+      label = 'Expiring soon';
+    }
+
+    return (
+      <span className={`badge ${badgeClass}`} style={{ fontSize: '11px', fontWeight: '600', marginTop: '4px', display: 'inline-flex' }}>
+        ⏳ {label}
+      </span>
+    );
+  };
 
   return (
     <div style={styles.card}>
@@ -17,9 +96,23 @@ const DonationCard = ({ donation, actions }) => {
           <span style={styles.emoji}>{foodTypeEmoji(foodType)}</span>
           <div>
             <h3 style={styles.foodName}>{foodName}</h3>
-            {donorName && (
-              <p style={styles.donor}>by {donorName}{donorPhone ? ` · ${donorPhone}` : ''}</p>
-            )}
+            <div style={{ marginBottom: '4px', display: 'flex', alignItems: 'center' }}>
+              {ratingsLoading ? (
+                <span style={{ fontSize: '11px', color: '#9ca3af' }}>Loading rating...</span>
+              ) : ratingAverage ? (
+                <span style={{ fontSize: '12.5px', color: '#eab308', fontWeight: '700' }}>
+                  ★ {ratingAverage} <span style={{ color: '#6b7280', fontWeight: '400', fontSize: '11px' }}>({ratingCount} rating{ratingCount !== 1 ? 's' : ''})</span>
+                </span>
+              ) : (
+                <span style={{ fontSize: '11.5px', color: '#9ca3af', fontStyle: 'italic' }}>No ratings yet</span>
+              )}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
+              {renderExpiryBadge()}
+              {donorName && (
+                <p style={styles.donor}>by {donorName}{donorPhone ? ` · ${donorPhone}` : ''}</p>
+              )}
+            </div>
           </div>
         </div>
         <span className={`badge ${statusBadgeClass(status)}`}>{status}</span>

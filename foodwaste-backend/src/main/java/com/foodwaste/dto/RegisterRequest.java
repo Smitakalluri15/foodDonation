@@ -28,6 +28,7 @@ public class RegisterRequest {
 
     private String orgName;
     private String registrationNumber;
+    private String aadhaarNumber;
 
     // ── Getters ──────────────────────────────────────────────────────────────
     public String getName()               { return name; }
@@ -39,6 +40,7 @@ public class RegisterRequest {
     public Role getRole()                 { return role; }
     public String getOrgName()            { return orgName; }
     public String getRegistrationNumber() { return registrationNumber; }
+    public String getAadhaarNumber()      { return aadhaarNumber; }
 
     // ── Setters ──────────────────────────────────────────────────────────────
     public void setName(String name)                            { this.name = name; }
@@ -50,4 +52,5 @@ public class RegisterRequest {
     public void setRole(Role role)                              { this.role = role; }
     public void setOrgName(String orgName)                      { this.orgName = orgName; }
     public void setRegistrationNumber(String registrationNumber){ this.registrationNumber = registrationNumber; }
+    public void setAadhaarNumber(String aadhaarNumber)          { this.aadhaarNumber = aadhaarNumber; }
 }
